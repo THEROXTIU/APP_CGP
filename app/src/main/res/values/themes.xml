@@ -3,6 +3,7 @@
     <style name="Base.Theme.AppCampestre" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="android:statusBarColor">@color/verde</item>
     </style>
 
     <style name="Theme.AppCampestre" parent="Base.Theme.AppCampestre" />

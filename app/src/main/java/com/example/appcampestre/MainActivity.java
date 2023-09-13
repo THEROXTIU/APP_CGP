@@ -4,17 +4,24 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
 import android.view.View;
+import android.webkit.CookieManager;
+import android.webkit.DownloadListener;
+import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -84,7 +91,42 @@ public class MainActivity extends AppCompatActivity {
             webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
             webView.setWebViewClient(new WebViewClient());
 
+            myWebSettings.setAllowFileAccess(true);
+            myWebSettings.setAllowContentAccess(true);
+
             mySwipeRefreshLayout = findViewById(R.id.swipeContainer);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+                if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
+
+                    Log.d("permission", "permission denied to WRITE_EXTERNAL_STORAGE - requesting it");
+                    String[] permissions = {android.Manifest.permission.WRITE_EXTERNAL_STORAGE};
+                    requestPermissions(permissions, 1);
+                }
+
+
+            }
+            webView.setDownloadListener((new DownloadListener() {
+                public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
+
+                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                    request.setMimeType(mimeType="image/png");
+                    String cookies = CookieManager.getInstance().getCookie(url);
+                    request.addRequestHeader("cookie", cookies);
+                    request.addRequestHeader("User-Agent", userAgent);
+                    request.setDescription("Downloading file....");
+                    request.setTitle(URLUtil.guessFileName(url, contentDisposition, mimeType));
+                    request.allowScanningByMediaScanner();
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, URLUtil.guessFileName(url, contentDisposition, mimeType));
+                    DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                    dm.enqueue(request);
+                    Toast.makeText(getApplicationContext(), "Downloading File", Toast.LENGTH_SHORT).show();
+
+
+                }
+            }));
 
             webView.setWebViewClient(new WebViewClient() {
                 @Override
@@ -104,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onRefresh() {
                     // Cargar la página web cuando se inicie la actualización.
-                    webView.loadUrl("http://192.168.10.96:8000/");
+                    webView.loadUrl("http://192.168.10.153:8000/");
                     mySwipeRefreshLayout.setRefreshing(true);
                 }
             });
@@ -182,7 +224,7 @@ public class MainActivity extends AppCompatActivity {
 
 
             //cargamos la url que deseamos acceder
-            webView.loadUrl("http://192.168.10.96:8000/");
+            webView.loadUrl("http://192.168.10.153:8000/");
 
         } else {
             finishAffinity();
