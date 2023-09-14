@@ -1,7 +1,14 @@
 package com.example.appcampestre;
 
+import static androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG;
+import static androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.app.DownloadManager;
@@ -17,6 +24,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -29,6 +37,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import java.util.concurrent.Executor;
+
 public class MainActivity extends AppCompatActivity {
     static WebView webView;
     private ValueCallback<Uri> mUploadMessage;
@@ -37,10 +47,28 @@ public class MainActivity extends AppCompatActivity {
     private final static int FILECHOOSER_RESULTCODE = 1;
     private WebSettings myWebSettings;
     SwipeRefreshLayout mySwipeRefreshLayout;
+    private BiometricPrompt biometricPrompt;
+    private BiometricPrompt.PromptInfo promptInfo;
+    private Executor executor;
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
         super.onActivityResult(requestCode, resultCode, intent);
+        Executor executor = ContextCompat.getMainExecutor(this);
+
+
+        // Lets user authenticate using either a Class 3 biometric or
+        // their lock screen credential (PIN, pattern, or password).
+        promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Inicio de Sesión Biométrico App Campestre")
+                .setSubtitle("Desbloquea la aplicación con tu huella dactilar")
+                .setAllowedAuthenticators(BIOMETRIC_STRONG | DEVICE_CREDENTIAL)
+                .build();
+
+
+
+
+
         //Swipe to refresh functionality
         mySwipeRefreshLayout = (SwipeRefreshLayout)this.findViewById(R.id.swipeContainer);
 
@@ -70,18 +98,76 @@ public class MainActivity extends AppCompatActivity {
             mUploadMessage.onReceiveValue(result);
             mUploadMessage = null;
         } else
-            Toast.makeText(getApplicationContext(), "Failed to Upload Image", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "Error al subir la imagen, intentalo de nuevo!", Toast.LENGTH_LONG).show();
     }
-    //Método para poder envíar archivos
+
+
+
+
+
+    // Método onCreate
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        executor = ContextCompat.getMainExecutor(this);
+        biometricPrompt = new BiometricPrompt(MainActivity.this,
+                executor, new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationError(int errorCode,
+                                              @NonNull CharSequence errString) {
+                super.onAuthenticationError(errorCode, errString);
+                Toast.makeText(getApplicationContext(),
+                                "Error en la autentificación: " + errString, Toast.LENGTH_SHORT)
+                        .show();
+            }
+
+            @Override
+            public void onAuthenticationSucceeded(
+                    @NonNull BiometricPrompt.AuthenticationResult result) {
+                super.onAuthenticationSucceeded(result);
+                Toast.makeText(getApplicationContext(),
+                        "Autentificación correcta!", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAuthenticationFailed() {
+                super.onAuthenticationFailed();
+                Toast.makeText(getApplicationContext(), "La autentificación falló",
+                                Toast.LENGTH_SHORT)
+                        .show();
+            }
+        });
+
+
+
+
+
         if (isInternetConnected()) {
+            promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Inicio de Sesión Biométrico App Campestre")
+                    .setSubtitle("Desbloquea la aplicación con tu huella dactilar")
+                    .setNegativeButtonText("Usa tu contraseña")
+                    .build();
+
+
+
+
+
+
+            // Prompt appears when user clicks "Log in".
+            // Consider integrating with the keystore to unlock cryptographic operations,
+            // if needed by your app.
+
+
+
+
+
 
             webView = findViewById(R.id.webView);
-
+            biometricPrompt.authenticate(promptInfo);
             //configuración de las opciones del WebView
             myWebSettings = webView.getSettings();
             myWebSettings.setJavaScriptEnabled(true);
@@ -96,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
 
             mySwipeRefreshLayout = findViewById(R.id.swipeContainer);
 
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
 
                 if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED) {
@@ -107,6 +194,7 @@ public class MainActivity extends AppCompatActivity {
 
 
             }
+
             webView.setDownloadListener((new DownloadListener() {
                 public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
 
@@ -133,6 +221,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onPageStarted(WebView view, String url, Bitmap favicon) {
                     // La página está comenzando a cargarse, así que indicamos que se está actualizando.
                     mySwipeRefreshLayout.setRefreshing(true);
+
                 }
 
                 @Override
@@ -146,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onRefresh() {
                     // Cargar la página web cuando se inicie la actualización.
-                    webView.loadUrl("http://192.168.10.153:8000/");
+                    webView.loadUrl("http://192.168.10.96:8000/");
                     mySwipeRefreshLayout.setRefreshing(true);
                 }
             });
@@ -224,13 +313,13 @@ public class MainActivity extends AppCompatActivity {
 
 
             //cargamos la url que deseamos acceder
-            webView.loadUrl("http://192.168.10.153:8000/");
+            webView.loadUrl("http://192.168.10.96:8000/");
+
 
         } else {
             finishAffinity();
             // El dispositivo no tiene conexión a Internet, muestra un mensaje de error.
             Toast.makeText(this, "No hay conexión a Internet", Toast.LENGTH_SHORT).show();
-
         }
     }
 
@@ -265,4 +354,6 @@ public class MainActivity extends AppCompatActivity {
 
         return false;
     }
+
+
 }
