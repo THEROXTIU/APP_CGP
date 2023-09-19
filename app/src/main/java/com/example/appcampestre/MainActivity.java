@@ -51,24 +51,16 @@ public class MainActivity extends AppCompatActivity {
     private BiometricPrompt.PromptInfo promptInfo;
     private Executor executor;
 
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
         super.onActivityResult(requestCode, resultCode, intent);
         Executor executor = ContextCompat.getMainExecutor(this);
-
-
-        // Lets user authenticate using either a Class 3 biometric or
-        // their lock screen credential (PIN, pattern, or password).
         promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Inicio de Sesión Biométrico App Campestre")
                 .setSubtitle("Desbloquea la aplicación con tu huella dactilar")
                 .setAllowedAuthenticators(BIOMETRIC_STRONG | DEVICE_CREDENTIAL)
                 .build();
-
-
-
-
-
         //Swipe to refresh functionality
         mySwipeRefreshLayout = (SwipeRefreshLayout)this.findViewById(R.id.swipeContainer);
 
@@ -80,7 +72,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
         );
-
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             if (requestCode == REQUEST_SELECT_FILE) {
@@ -100,10 +91,6 @@ public class MainActivity extends AppCompatActivity {
         } else
             Toast.makeText(getApplicationContext(), "Error al subir la imagen, intentalo de nuevo!", Toast.LENGTH_LONG).show();
     }
-
-
-
-
 
     // Método onCreate
     @Override
@@ -152,19 +139,9 @@ public class MainActivity extends AppCompatActivity {
                     .setNegativeButtonText("Usa tu contraseña")
                     .build();
 
-
-
-
-
-
             // Prompt appears when user clicks "Log in".
             // Consider integrating with the keystore to unlock cryptographic operations,
             // if needed by your app.
-
-
-
-
-
 
             webView = findViewById(R.id.webView);
             biometricPrompt.authenticate(promptInfo);
@@ -176,10 +153,8 @@ public class MainActivity extends AppCompatActivity {
             webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
             webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
             webView.setWebViewClient(new WebViewClient());
-
             myWebSettings.setAllowFileAccess(true);
             myWebSettings.setAllowContentAccess(true);
-
             mySwipeRefreshLayout = findViewById(R.id.swipeContainer);
 
 
@@ -191,8 +166,6 @@ public class MainActivity extends AppCompatActivity {
                     String[] permissions = {android.Manifest.permission.WRITE_EXTERNAL_STORAGE};
                     requestPermissions(permissions, 1);
                 }
-
-
             }
 
             webView.setDownloadListener((new DownloadListener() {
@@ -220,25 +193,16 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onPageStarted(WebView view, String url, Bitmap favicon) {
                     // La página está comenzando a cargarse, así que indicamos que se está actualizando.
-                    mySwipeRefreshLayout.setRefreshing(true);
 
                 }
 
                 @Override
                 public void onPageFinished(WebView view, String url) {
                     // La página se ha cargado completamente, así que detenemos la animación de actualización.
-                    mySwipeRefreshLayout.setRefreshing(false);
+
                 }
             });
 
-            mySwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-                @Override
-                public void onRefresh() {
-                    // Cargar la página web cuando se inicie la actualización.
-                    webView.loadUrl("http://192.168.10.96:8000/");
-                    mySwipeRefreshLayout.setRefreshing(true);
-                }
-            });
             /* OCULTAR PROGRESSBAR CUANDO YA LA PÁGINA SE HA CARGADO POR COMPLETO
             webView.setWebViewClient(new WebViewClient() {
                 @Override
